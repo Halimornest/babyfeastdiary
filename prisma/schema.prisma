@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  babies    Baby[]
+}
+
+model Baby {
+  id        Int       @id @default(autoincrement())
+  name      String
+  birthDate DateTime
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id])
+  foodLogs  FoodLog[]
+}
+
+model Ingredient {
+  id              Int                  @id @default(autoincrement())
+  name            String               @unique
+  category        IngredientCategory   @default(KARBO)
+  foodIngredients FoodIngredient[]
+  embedding       IngredientEmbedding?
+}
+
+model IngredientEmbedding {
+  id           Int        @id @default(autoincrement())
+  ingredientId Int        @unique
+  embedding    Json
+  model        String     @default("text-embedding-3-small")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+}
+
+model Seasoning {
+  id             Int             @id @default(autoincrement())
+  name           String          @unique
+  category       SeasoningCategory @default(AROMATIC)
+  minAgeMonths   Int             @default(6)
+  isStrongFlavor Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  foodSeasonings FoodSeasoning[]
+}
+
+model CookingMethod {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  foodLogs FoodLog[]
+}
+
+model Broth {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  foodLogs FoodLog[]
+}
+
+model FoodLog {
+  id              Int              @id @default(autoincrement())
+  babyId          Int
+  cookingMethodId Int?
+  brothId         Int?
+  note            String?
+  date            DateTime         @default(now())
+  ingredients     FoodIngredient[]
+  baby            Baby             @relation(fields: [babyId], references: [id])
+  broth           Broth?           @relation(fields: [brothId], references: [id])
+  cookingMethod   CookingMethod?   @relation(fields: [cookingMethodId], references: [id])
+  seasonings      FoodSeasoning[]
+  reaction        Reaction?
+}
+
+model FoodIngredient {
+  id           Int        @id @default(autoincrement())
+  foodLogId    Int
+  ingredientId Int
+  foodLog      FoodLog    @relation(fields: [foodLogId], references: [id])
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+}
+
+model FoodSeasoning {
+  id          Int       @id @default(autoincrement())
+  foodLogId   Int
+  seasoningId Int
+  foodLog     FoodLog   @relation(fields: [foodLogId], references: [id])
+  seasoning   Seasoning @relation(fields: [seasoningId], references: [id])
+}
+
+model Reaction {
+  id                Int      @id @default(autoincrement())
+  foodLogId         Int      @unique
+  liked             Boolean?
+  allergy           Boolean?
+  note              String?
+  reactionIntensity String?
+  foodLog           FoodLog  @relation(fields: [foodLogId], references: [id])
+}
+
+enum IngredientCategory {
+  KARBO
+  PROTEIN_HEWANI
+  PROTEIN_NABATI
+  SAYURAN
+  BUAH
+}
+
+enum SeasoningCategory {
+  AROMATIC
+  SPICE
+  FAT
+  HERB
+}

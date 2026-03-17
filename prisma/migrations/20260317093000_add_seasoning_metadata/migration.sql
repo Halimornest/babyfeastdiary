@@ -1,0 +1,9 @@
+-- CreateEnum
+CREATE TYPE "SeasoningCategory" AS ENUM ('AROMATIC', 'SPICE', 'UMAMI', 'FAT', 'HERB');
+
+-- AlterTable
+ALTER TABLE "Seasoning"
+ADD COLUMN "category" "SeasoningCategory" NOT NULL DEFAULT 'AROMATIC',
+ADD COLUMN "minAgeMonths" INTEGER NOT NULL DEFAULT 6,
+ADD COLUMN "isStrongFlavor" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;

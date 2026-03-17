@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Baby Feast Diary
+
+Next.js app for baby feeding logs, nutrition summaries, and AI-assisted recommendations.
 
 ## Getting Started
 
-First, run the development server:
+```bash
+npm install
+npm run dev
+```
+
+App runs at `http://localhost:3000`.
+
+## AI Heuristic Tuning
+
+The next-food recommendation engine is hybrid (rules + embeddings), and the scoring weights are configurable through environment variables.
+
+Add these to your `.env` file as needed:
+
+```bash
+NEXT_FOOD_WEIGHT_CATEGORY_GAP=0.4
+NEXT_FOOD_WEIGHT_PREFERENCE=0.3
+NEXT_FOOD_WEIGHT_SIMILARITY=0.3
+NEXT_FOOD_SIMILARITY_POOL=20
+NEXT_FOOD_CUSTOM_WEIGHTS_ENABLED=true
+AI_RATE_LIMIT_MAX_REQUESTS=60
+AI_RATE_LIMIT_WINDOW_SECONDS=60
+AI_RETRY_MAX_ATTEMPTS=3
+AI_RETRY_BASE_DELAY_MS=300
+```
+
+Notes:
+- The three weight values are normalized automatically.
+- `NEXT_FOOD_SIMILARITY_POOL` controls how many embedding-based similar foods are considered before final ranking.
+- Set `NEXT_FOOD_CUSTOM_WEIGHTS_ENABLED=false` to force default weights without removing env values.
+
+## Internal Tuning Baseline
+
+For AI tuning metrics and baseline targets, see `docs/ai-tuning-baseline.md`.
+
+## Available Scripts
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run build
+npm run start
+npm run lint
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
