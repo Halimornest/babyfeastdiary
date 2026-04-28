@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useBaby } from "@/app/components/BabyContext";
-import { fetchBasicSummary, fetchAiInsights } from "@/app/services/summaryService";
+import { fetchBasicSummary, fetchAiInsights, invalidateSummaryCache } from "@/app/services/summaryService";
 import type {
   SummaryData,
   WeeklyReportData,
@@ -22,9 +22,11 @@ export interface UseSummaryDataReturn {
   loading: boolean;
   insightsLoading: boolean;
   insightsError: boolean;
+  summaryError: boolean;
   noBaby: boolean;
   babiesLoading: boolean;
   refreshInsights: () => void;
+  retryBasicSummary: () => void;
 }
 
 export function useSummaryData(): UseSummaryDataReturn {
@@ -39,6 +41,7 @@ export function useSummaryData(): UseSummaryDataReturn {
   const [summaryLoadedFor, setSummaryLoadedFor] = useState<number | null>(null);
   const [insightsLoadedFor, setInsightsLoadedFor] = useState<number | null>(null);
   const [insightsError, setInsightsError] = useState(false);
+  const [summaryError, setSummaryError] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const noBaby = !babiesLoading && babies.length === 0;
@@ -49,9 +52,17 @@ export function useSummaryData(): UseSummaryDataReturn {
 
   const refreshInsights = useCallback(() => {
     if (!babyId) return;
+    invalidateSummaryCache(babyId);
     setSummaryLoadedFor(null);
     setInsightsLoadedFor(null);
     setInsightsError(false);
+    setRefreshKey((value) => value + 1);
+  }, [babyId]);
+  const retryBasicSummary = useCallback(() => {
+    if (!babyId) return;
+    invalidateSummaryCache(babyId);
+    setSummaryLoadedFor(null);
+    setSummaryError(false);
     setRefreshKey((value) => value + 1);
   }, [babyId]);
 
@@ -60,8 +71,19 @@ export function useSummaryData(): UseSummaryDataReturn {
     if (!babyId) return;
     let cancelled = false;
     fetchBasicSummary(babyId)
-      .then((d) => { if (!cancelled) { setData(d); setSummaryLoadedFor(babyId); } })
-      .catch((err) => console.error("Failed to load summary:", err))
+      .then((d) => {
+        if (cancelled) return;
+        setData(d);
+        setSummaryError(!d);
+        setSummaryLoadedFor(babyId);
+      })
+      .catch((err) => {
+        console.error("Failed to load summary:", err);
+        if (!cancelled) {
+          setSummaryError(true);
+          setSummaryLoadedFor(babyId);
+        }
+      });
     return () => { cancelled = true; };
   }, [babyId, refreshKey]);
 
@@ -94,8 +116,10 @@ export function useSummaryData(): UseSummaryDataReturn {
     loading,
     insightsLoading,
     insightsError,
+    summaryError,
     noBaby,
     babiesLoading,
     refreshInsights,
+    retryBasicSummary,
   };
 }

@@ -11,6 +11,22 @@ npm run dev
 
 App runs at `http://localhost:3000`. NICEEEEEEE
 
+## Production DB Safety Checklist
+
+Before running migration/seed on production-like env (`VERCEL_ENV=production|preview`):
+
+1. Confirm `DATABASE_URL` points to the intended project.
+2. Take DB backup/snapshot from Supabase.
+3. Verify rollback plan (who can restore and ETA).
+4. Run safe commands with explicit override:
+
+```bash
+ALLOW_PROD_DB_CHANGE=true npm run db:migrate:deploy:safe
+ALLOW_PROD_DB_CHANGE=true npm run db:seed:safe
+```
+
+Without `ALLOW_PROD_DB_CHANGE=true`, production-like DB commands are blocked.
+
 ## AI Heuristic Tuning
 
 The next-food recommendation engine is hybrid (rules + embeddings), and the scoring weights are configurable through environment variables.
@@ -27,6 +43,7 @@ AI_RATE_LIMIT_MAX_REQUESTS=60
 AI_RATE_LIMIT_WINDOW_SECONDS=60
 AI_RETRY_MAX_ATTEMPTS=3
 AI_RETRY_BASE_DELAY_MS=300
+DB_POOL_MAX=1
 ```
 
 Notes:

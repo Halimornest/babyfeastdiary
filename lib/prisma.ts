@@ -14,7 +14,7 @@ function buildPgConfig() {
 
   const parsed = new URL(url);
   const sslMode = parsed.searchParams.get("sslmode");
-  const maxPoolSize = Number(process.env.DB_POOL_MAX ?? "3");
+  const maxPoolSize = Number(process.env.DB_POOL_MAX ?? "1");
 
   return {
     host: parsed.hostname,
@@ -22,7 +22,7 @@ function buildPgConfig() {
     user: decodeURIComponent(parsed.username),
     password: decodeURIComponent(parsed.password || ""),
     database: decodeURIComponent(parsed.pathname.replace(/^\//, "") || "postgres"),
-    max: Number.isFinite(maxPoolSize) && maxPoolSize > 0 ? maxPoolSize : 3,
+    max: Number.isFinite(maxPoolSize) && maxPoolSize > 0 ? maxPoolSize : 1,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
     ssl:
@@ -37,9 +37,7 @@ function getPrismaAdapter() {
     return globalForPrisma.prismaAdapter;
   }
   const adapter = new PrismaPg(buildPgConfig());
-  if (process.env.NODE_ENV !== "production") {
-    globalForPrisma.prismaAdapter = adapter;
-  }
+  globalForPrisma.prismaAdapter = adapter;
   return adapter;
 }
 

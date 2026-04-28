@@ -40,10 +40,24 @@ export async function aggregateTasteProfile(
 
   const foodLogs = await prisma.foodLog.findMany({
     where: { babyId },
-    include: {
-      ingredients: { include: { ingredient: true } },
-      reaction: true,
-      cookingMethod: true,
+    take: 500,
+    select: {
+      ingredients: {
+        select: {
+          ingredient: {
+            select: {
+              name: true,
+              category: true,
+            },
+          },
+        },
+      },
+      reaction: {
+        select: { liked: true },
+      },
+      cookingMethod: {
+        select: { name: true },
+      },
     },
     orderBy: { date: "desc" },
   });

@@ -4,17 +4,21 @@ import { NextResponse } from "next/server";
 import { foodLogCreateSchema, formatZodIssueMessage } from "@/lib/api/schemas";
 import { getAiCache, invalidateBabyAiCaches, nextFoodsKey } from "@/lib/ai-cache";
 import { trackAiEvent } from "@/lib/observability/telemetry";
+import { buildRequestLog, jsonError } from "@/lib/observability/http";
 
 export async function POST(req: Request) {
+  const reqLog = buildRequestLog(req, { route: "/api/food-log" });
   try {
     const auth = await getCurrentUser();
     if (!auth) {
+      reqLog.fail("unauthorized", 401);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await req.json();
     const parsed = foodLogCreateSchema.safeParse(body);
     if (!parsed.success) {
+      reqLog.fail("invalid_payload", 400);
       return NextResponse.json(
         { error: formatZodIssueMessage(parsed.error) },
         { status: 400 }
@@ -33,6 +37,7 @@ export async function POST(req: Request) {
     // Verify baby belongs to authenticated user
     const baby = await prisma.baby.findUnique({ where: { id: babyId } });
     if (!baby || baby.userId !== auth.userId) {
+      reqLog.fail("baby_not_found", 404, { userId: auth.userId, babyId });
       return NextResponse.json({ error: "Baby not found" }, { status: 404 });
     }
 
@@ -102,18 +107,20 @@ export async function POST(req: Request) {
         acceptedRecommendations,
       });
     }
-
+    reqLog.ok(200, { userId: auth.userId, babyId, ingredientCount: ingredientIds.length });
     return NextResponse.json(foodLog);
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Failed to create food log" }, { status: 500 });
+    reqLog.fail(error, 500);
+    return jsonError(error, "Failed to create food log");
   }
 }
 
 export async function GET(req: Request) {
+  const reqLog = buildRequestLog(req, { route: "/api/food-log" });
   try {
     const auth = await getCurrentUser();
     if (!auth) {
+      reqLog.fail("unauthorized", 401);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -131,6 +138,7 @@ export async function GET(req: Request) {
     if (babyId) {
       const baby = await prisma.baby.findUnique({ where: { id: Number(babyId) } });
       if (!baby || baby.userId !== auth.userId) {
+        reqLog.fail("baby_not_found", 404, { userId: auth.userId, babyId: Number(babyId) });
         return NextResponse.json({ error: "Baby not found" }, { status: 404 });
       }
     }
@@ -206,6 +214,7 @@ export async function GET(req: Request) {
       take: paged ? take + 1 : take,
     });
     if (!paged) {
+      reqLog.ok(200, { userId: auth.userId, babyId: babyId ? Number(babyId) : undefined, count: foodLogs.length });
       return NextResponse.json(foodLogs);
     }
 
@@ -213,12 +222,18 @@ export async function GET(req: Request) {
     const items = hasMore ? foodLogs.slice(0, take) : foodLogs;
     const nextCursor = hasMore ? items[items.length - 1]?.id ?? null : null;
 
-    return NextResponse.json({ items, nextCursor });
-  } catch (error) {
-    console.error(error);
+    reqLog.ok(200, {
+      userId: auth.userId,
+      babyId: babyId ? Number(babyId) : undefined,
+      count: items.length,
+      hasMore,
+    });
     return NextResponse.json(
-      { error: "Failed to fetch food logs" },
-      { status: 500 }
+      { items, nextCursor },
+      { headers: { "Cache-Control": "private, max-age=10, stale-while-revalidate=20" } }
     );
+  } catch (error) {
+    reqLog.fail(error, 500);
+    return jsonError(error, "Failed to fetch food logs");
   }
 }

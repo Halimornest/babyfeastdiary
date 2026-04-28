@@ -47,6 +47,7 @@ export async function aggregateWeeklyNutrition(
   const [weekLogs, previousIngredients] = await Promise.all([
     prisma.foodLog.findMany({
       where: { babyId, date: { gte: oneWeekAgo } },
+      take: 300,
       select: {
         ingredients: {
           select: {
@@ -74,6 +75,7 @@ export async function aggregateWeeklyNutrition(
           date: { lt: oneWeekAgo },
         },
       },
+      take: 1000,
       select: {
         ingredient: {
           select: {

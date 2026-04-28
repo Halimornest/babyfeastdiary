@@ -29,9 +29,11 @@ function SummaryContent() {
     loading,
     insightsLoading,
     insightsError,
+    summaryError,
     noBaby,
     babiesLoading,
     refreshInsights,
+    retryBasicSummary,
   } = useSummaryData();
   const hasBasicData = Boolean(data);
 
@@ -191,6 +193,18 @@ function SummaryContent() {
                 <AllergyFoodsSection data={data} />
                 <TriedFoodsSection data={data} />
               </>
+            )}
+            {!data && summaryError && (
+              <div className="bg-rose-50 border border-rose-200 rounded-2xl px-4 py-3 text-sm text-rose-700 text-center">
+                Ringkasan dasar gagal dimuat.
+                <button
+                  type="button"
+                  onClick={retryBasicSummary}
+                  className="ml-2 inline-flex items-center rounded-lg border border-rose-300 bg-white px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100"
+                >
+                  Coba lagi
+                </button>
+              </div>
             )}
 
             {/* Weekly report + variety */}

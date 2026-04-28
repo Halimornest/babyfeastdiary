@@ -30,6 +30,7 @@ export default function HistoryPage() {
   const [foodLogs, setFoodLogs] = useState<FoodLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [nextCursor, setNextCursor] = useState<number | null>(null);
   const [prefetched, setPrefetched] = useState<{ cursor: number | null; items: FoodLog[]; nextCursor: number | null } | null>(null);
@@ -135,6 +136,7 @@ export default function HistoryPage() {
 
     void (async () => {
       try {
+        setHistoryError(null);
         const page = await fetchHistoryPage(null);
         if (cancelled) return;
         setFoodLogs(page.items);
@@ -143,6 +145,7 @@ export default function HistoryPage() {
       } catch (err) {
         if (!cancelled) {
           console.error("Failed to load history:", err);
+          setHistoryError("Gagal memuat history. Coba lagi.");
         }
       } finally {
         if (!cancelled) {
@@ -200,7 +203,7 @@ export default function HistoryPage() {
   }, [activeBabyId, loading, loadingMore, hasMore, nextCursor, fetchHistoryPage, prefetched]);
 
   useEffect(() => {
-    if (!hasMore || loading || loadingMore) return;
+    if (!hasMore || loading || loadingMore || historyError) return;
     const target = loadMoreRef.current;
     if (!target) return;
 
@@ -215,7 +218,7 @@ export default function HistoryPage() {
 
     observer.observe(target);
     return () => observer.disconnect();
-  }, [hasMore, loading, loadingMore, loadHistory]);
+  }, [hasMore, loading, loadingMore, loadHistory, historyError]);
 
   useEffect(() => {
     let cancelled = false;
@@ -503,6 +506,20 @@ export default function HistoryPage() {
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-6 space-y-4">
+        {historyError && (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            <div className="flex items-center justify-between gap-3">
+              <span>{historyError}</span>
+              <button
+                type="button"
+                onClick={() => void loadHistory(true)}
+                className="inline-flex items-center rounded-lg border border-rose-300 bg-white px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100"
+              >
+                Coba lagi
+              </button>
+            </div>
+          </div>
+        )}
         {foodLogs.length === 0 ? (
           <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 text-center animate-section-enter">
             <span className="text-4xl block mb-3">🍽️</span>

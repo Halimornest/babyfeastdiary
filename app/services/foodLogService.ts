@@ -8,6 +8,8 @@ export interface FoodBuilderData {
   broths: DataItem[];
 }
 
+let foodBuilderCache: { data: FoodBuilderData; expiresAt: number } | null = null;
+
 function ensureArray<T>(value: unknown): T[] {
   return Array.isArray(value) ? (value as T[]) : [];
 }
@@ -25,26 +27,46 @@ async function parseJsonResponse(res: Response, label: string): Promise<unknown>
 }
 
 export async function fetchFoodBuilderData(): Promise<FoodBuilderData> {
-  const [ingredientsRes, cookingRes, seasoningsRes, brothsRes] = await Promise.all([
-    fetchWithTimeoutAndRetry("/api/ingredients", {}, { timeoutMs: 12000, retries: 1, retryDelayMs: 250 }),
-    fetchWithTimeoutAndRetry("/api/cooking-methods", {}, { timeoutMs: 12000, retries: 1, retryDelayMs: 250 }),
-    fetchWithTimeoutAndRetry("/api/seasonings", {}, { timeoutMs: 12000, retries: 1, retryDelayMs: 250 }),
-    fetchWithTimeoutAndRetry("/api/broths", {}, { timeoutMs: 12000, retries: 1, retryDelayMs: 250 }),
-  ]);
+  const now = Date.now();
+  if (foodBuilderCache && foodBuilderCache.expiresAt > now) {
+    return foodBuilderCache.data;
+  }
 
-  const [ingredientsRaw, cookingMethodsRaw, seasoningsRaw, brothsRaw] = await Promise.all([
-    parseJsonResponse(ingredientsRes, "Ingredients"),
-    parseJsonResponse(cookingRes, "Cooking methods"),
-    parseJsonResponse(seasoningsRes, "Seasonings"),
-    parseJsonResponse(brothsRes, "Broths"),
-  ]);
+  // Fetch sequentially to avoid connection spikes on small DB pool limits.
+  const ingredientsRes = await fetchWithTimeoutAndRetry(
+    "/api/ingredients",
+    {},
+    { timeoutMs: 12000, retries: 1, retryDelayMs: 250 }
+  );
+  const cookingRes = await fetchWithTimeoutAndRetry(
+    "/api/cooking-methods",
+    {},
+    { timeoutMs: 12000, retries: 1, retryDelayMs: 250 }
+  );
+  const seasoningsRes = await fetchWithTimeoutAndRetry(
+    "/api/seasonings",
+    {},
+    { timeoutMs: 12000, retries: 1, retryDelayMs: 250 }
+  );
+  const brothsRes = await fetchWithTimeoutAndRetry(
+    "/api/broths",
+    {},
+    { timeoutMs: 12000, retries: 1, retryDelayMs: 250 }
+  );
+
+  const ingredientsRaw = await parseJsonResponse(ingredientsRes, "Ingredients");
+  const cookingMethodsRaw = await parseJsonResponse(cookingRes, "Cooking methods");
+  const seasoningsRaw = await parseJsonResponse(seasoningsRes, "Seasonings");
+  const brothsRaw = await parseJsonResponse(brothsRes, "Broths");
 
   const ingredients = ensureArray<IngredientItem>(ingredientsRaw);
   const cookingMethods = ensureArray<DataItem>(cookingMethodsRaw);
   const seasonings = ensureArray<SeasoningItem>(seasoningsRaw);
   const broths = ensureArray<DataItem>(brothsRaw);
 
-  return { ingredients, cookingMethods, seasonings, broths };
+  const data = { ingredients, cookingMethods, seasonings, broths };
+  foodBuilderCache = { data, expiresAt: now + 5 * 60 * 1000 };
+  return data;
 }
 
 export interface SaveMealPayload {
