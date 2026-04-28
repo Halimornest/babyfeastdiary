@@ -13,6 +13,9 @@ export default function HistoryPage() {
   const [foodLogs, setFoodLogs] = useState<FoodLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingReaction, setSavingReaction] = useState<number | null>(null);
+  const [deletingLogId, setDeletingLogId] = useState<number | null>(null);
+  const [confirmDeleteLogId, setConfirmDeleteLogId] = useState<number | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!activeBabyId) return;
@@ -50,6 +53,30 @@ export default function HistoryPage() {
       console.error("Failed to save reaction:", err);
     } finally {
       setSavingReaction(null);
+    }
+  };
+
+  const handleDelete = async (logId: number) => {
+    setDeleteError(null);
+    setDeletingLogId(logId);
+    try {
+      const res = await fetch(`/api/food-log/${logId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setDeleteError(
+          data && typeof data.error === "string"
+            ? data.error
+            : "Gagal menghapus meal history"
+        );
+        return;
+      }
+      setFoodLogs((prev) => prev.filter((log) => log.id !== logId));
+      setConfirmDeleteLogId(null);
+    } catch (err) {
+      console.error("Failed to delete food log:", err);
+      setDeleteError("Gagal menghapus meal history");
+    } finally {
+      setDeletingLogId(null);
     }
   };
 
@@ -127,12 +154,25 @@ export default function HistoryPage() {
                 <span className="text-xs text-gray-400 font-medium">
                   {formatDate(log.date)}
                 </span>
-                {log.cookingMethod && (
-                  <span className="inline-flex items-center gap-1 text-xs font-medium text-mint-700 bg-mint-50 px-2.5 py-1 rounded-full">
-                    {cookingEmojis[log.cookingMethod.name] || "🍳"}{" "}
-                    {log.cookingMethod.name}
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {log.cookingMethod && (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-mint-700 bg-mint-50 px-2.5 py-1 rounded-full">
+                      {cookingEmojis[log.cookingMethod.name] || "🍳"}{" "}
+                      {log.cookingMethod.name}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDeleteError(null);
+                      setConfirmDeleteLogId(log.id);
+                    }}
+                    disabled={deletingLogId === log.id}
+                    className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-100 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                  >
+                    {deletingLogId === log.id ? "Menghapus..." : "🗑️ Hapus"}
+                  </button>
+                </div>
               </div>
 
               {/* Ingredients */}
@@ -229,6 +269,56 @@ export default function HistoryPage() {
           ))
         )}
       </main>
+
+      {confirmDeleteLogId !== null && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/45 backdrop-blur-[2px] px-4 pb-4 sm:pb-0">
+          <div className="w-full max-w-md rounded-3xl border border-red-100 bg-white shadow-2xl animate-section-enter overflow-hidden">
+            <div className="bg-linear-to-r from-red-50 via-white to-peach-50 px-5 pt-5 pb-4 border-b border-red-100">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center text-lg shrink-0">
+                  🗑️
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-gray-800">Hapus Meal History?</h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Data ini akan dihapus permanen dan tidak bisa dikembalikan.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-5 py-4 space-y-3">
+              {deleteError && (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {deleteError}
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  disabled={deletingLogId === confirmDeleteLogId}
+                  onClick={() => {
+                    setDeleteError(null);
+                    setConfirmDeleteLogId(null);
+                  }}
+                  className="h-11 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  disabled={deletingLogId === confirmDeleteLogId}
+                  onClick={() => void handleDelete(confirmDeleteLogId)}
+                  className="h-11 rounded-2xl border border-red-300 bg-red-500 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                >
+                  {deletingLogId === confirmDeleteLogId ? "Menghapus..." : "Ya, Hapus"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <BottomNav />
     </div>

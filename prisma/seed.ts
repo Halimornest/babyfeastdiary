@@ -2,6 +2,7 @@ import { PrismaClient } from "../app/generated/prisma";
 import { IngredientCategory } from "../app/generated/prisma";
 import { SeasoningCategory } from "../app/generated/prisma";
 import { PrismaPg } from "@prisma/adapter-pg";
+import bcrypt from "bcryptjs";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
@@ -219,13 +220,14 @@ async function main() {
   // Create a default user and baby if none exist yet
   const babiesCount = await prisma.baby.count();
   if (babiesCount === 0) {
+    const defaultPasswordHash = await bcrypt.hash("changeme", 12);
     const user = await prisma.user.upsert({
       where: { email: "parent@babyfeastdiary.dev" },
       update: {},
       create: {
         name: "Orang Tua",
         email: "parent@babyfeastdiary.dev",
-        password: "changeme",
+        password: defaultPasswordHash,
       },
     });
 

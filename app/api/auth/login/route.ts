@@ -13,15 +13,17 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { email, password } = body;
+    const normalizedEmail =
+      typeof email === "string" ? email.trim().toLowerCase() : "";
 
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       return NextResponse.json(
         { error: "Email and password are required" },
         { status: 400 }
       );
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (!user) {
       return NextResponse.json(
         { error: "Invalid email or password" },
@@ -47,9 +49,16 @@ export async function POST(req: Request) {
     console.error("Login error:", error);
 
     const prismaCode = getPrismaErrorCode(error);
-    if (prismaCode === "P1001" || prismaCode === "P1002") {
+    const message =
+      error instanceof Error ? error.message.toLowerCase() : "";
+    if (
+      prismaCode === "P1001" ||
+      prismaCode === "P1002" ||
+      prismaCode === "P1011" ||
+      message.includes("tenant or user not found")
+    ) {
       return NextResponse.json(
-        { error: "Database temporarily unreachable. Please try again." },
+        { error: "Database connection failed. Please check DATABASE_URL and try again." },
         { status: 503 }
       );
     }
