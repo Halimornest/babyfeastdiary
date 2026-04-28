@@ -119,6 +119,13 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const babyId = searchParams.get("babyId");
+    const limitParam = Number(searchParams.get("limit") ?? "30");
+    const cursorParam = Number(searchParams.get("cursor") ?? "0");
+    const paged = searchParams.get("paged") === "1";
+    const take = Number.isInteger(limitParam)
+      ? Math.max(1, Math.min(limitParam, 100))
+      : 30;
+    const cursor = Number.isInteger(cursorParam) && cursorParam > 0 ? cursorParam : null;
 
     // If babyId provided, verify it belongs to user
     if (babyId) {
@@ -134,31 +141,79 @@ export async function GET(req: Request) {
       select: { id: true },
     })).map((b) => b.id);
 
+    const whereClause = babyId
+      ? {
+          babyId: Number(babyId),
+          baby: { userId: auth.userId },
+          ...(cursor ? { id: { lt: cursor } } : {}),
+        }
+      : {
+          babyId: { in: userBabyIds },
+          ...(cursor ? { id: { lt: cursor } } : {}),
+        };
+
     const foodLogs = await prisma.foodLog.findMany({
-      where: babyId
-        ? { babyId: Number(babyId), baby: { userId: auth.userId } }
-        : { babyId: { in: userBabyIds } },
-      include: {
+      where: whereClause,
+      select: {
+        id: true,
+        date: true,
+        note: true,
         ingredients: {
-          include: {
-            ingredient: true,
+          select: {
+            id: true,
+            ingredient: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
         seasonings: {
-          include: {
-            seasoning: true,
+          select: {
+            id: true,
+            seasoning: {
+              select: {
+                id: true,
+                name: true,
+                category: true,
+              },
+            },
           },
         },
-        cookingMethod: true,
-        broth: true,
-        reaction: true,
+        cookingMethod: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        broth: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        reaction: {
+          select: {
+            id: true,
+            liked: true,
+            allergy: true,
+            note: true,
+          },
+        },
       },
-      orderBy: {
-        date: "desc",
-      },
+      orderBy: [{ date: "desc" }, { id: "desc" }],
+      take: paged ? take + 1 : take,
     });
+    if (!paged) {
+      return NextResponse.json(foodLogs);
+    }
 
-    return NextResponse.json(foodLogs);
+    const hasMore = foodLogs.length > take;
+    const items = hasMore ? foodLogs.slice(0, take) : foodLogs;
+    const nextCursor = hasMore ? items[items.length - 1]?.id ?? null : null;
+
+    return NextResponse.json({ items, nextCursor });
   } catch (error) {
     console.error(error);
     return NextResponse.json(

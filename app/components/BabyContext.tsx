@@ -8,6 +8,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
+import { fetchWithTimeoutAndRetry } from "@/lib/fetch-with-retry";
 
 export interface Baby {
   id: number;
@@ -40,7 +41,11 @@ export function BabyProvider({ children }: { children: ReactNode }) {
 
   const fetchBabies = useCallback(async () => {
     try {
-      const res = await fetch("/api/babies");
+      const res = await fetchWithTimeoutAndRetry(
+        "/api/babies",
+        {},
+        { timeoutMs: 10000, retries: 1, retryDelayMs: 250 }
+      );
       if (!res.ok) throw new Error();
       const data = await res.json();
       if (Array.isArray(data)) {

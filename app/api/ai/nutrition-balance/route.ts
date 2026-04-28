@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
     }
     const { babyId } = parsedQuery.data;
 
-    const baby = await prisma.baby.findUnique({ where: { id: babyId } });
+    const baby = await prisma.baby.findUnique({ where: { id: babyId }, select: { userId: true } });
     if (!baby || baby.userId !== auth.userId) {
       return NextResponse.json({ error: "Baby not found" }, { status: 404 });
     }

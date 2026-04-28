@@ -6,9 +6,14 @@ import type {
   RecipeSuggestionsData,
   TasteProfileData,
 } from "@/app/types/summary";
+import { fetchWithTimeoutAndRetry } from "@/lib/fetch-with-retry";
 
 function safeFetchNoStore<T>(url: string): Promise<T | null> {
-  return fetch(url, { cache: "no-store" })
+  return fetchWithTimeoutAndRetry(
+    url,
+    { cache: "no-store" },
+    { timeoutMs: 15000, retries: 1, retryDelayMs: 300 }
+  )
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null);
 }

@@ -12,12 +12,13 @@ interface SeasoningSelectorProps {
   seaBadgeAnim: boolean;
 }
 
-const SEASONING_CATEGORIES: { key: "ALL" | SeasoningCategory; label: string; emoji: string }[] = [
+type NonFatSeasoningCategory = Exclude<SeasoningCategory, "FAT">;
+
+const SEASONING_CATEGORIES: { key: "ALL" | NonFatSeasoningCategory; label: string; emoji: string }[] = [
   { key: "ALL", label: "Semua", emoji: "🧂" },
-  { key: "AROMATIC", label: "Aromatic", emoji: "🧅" },
+  { key: "AROMATIC", label: "Aromatic", emoji: "🧄" },
   { key: "HERB", label: "Herb", emoji: "🌿" },
   { key: "SPICE", label: "Spice", emoji: "🌶️" },
-  { key: "FAT", label: "Fat", emoji: "🥑" },
 ];
 
 export default function SeasoningSelector({
@@ -26,7 +27,7 @@ export default function SeasoningSelector({
   toggleSeasoning,
   seaBadgeAnim,
 }: SeasoningSelectorProps) {
-  const [activeCategory, setActiveCategory] = useState<"ALL" | SeasoningCategory>("ALL");
+  const [activeCategory, setActiveCategory] = useState<"ALL" | NonFatSeasoningCategory>("ALL");
   const [search, setSearch] = useState("");
 
   const sorted = useMemo(
@@ -37,6 +38,7 @@ export default function SeasoningSelector({
   const filtered = useMemo(() => {
     return sorted.filter((item) => {
       const itemCategory = item.category ?? "AROMATIC";
+      if (itemCategory === "FAT") return false;
       const matchCategory = activeCategory === "ALL" || itemCategory === activeCategory;
       const matchSearch = item.name.toLowerCase().includes(search.toLowerCase());
       return matchCategory && matchSearch;
@@ -44,9 +46,11 @@ export default function SeasoningSelector({
   }, [sorted, activeCategory, search]);
 
   const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = { ALL: sorted.length };
+    const counts: Record<string, number> = { ALL: 0 };
     for (const item of sorted) {
       const key = item.category ?? "AROMATIC";
+      if (key === "FAT") continue;
+      counts.ALL += 1;
       counts[key] = (counts[key] || 0) + 1;
     }
     return counts;

@@ -32,7 +32,10 @@ export interface WeeklyNutritionSummary {
 export async function aggregateWeeklyNutrition(
   babyId: number
 ): Promise<WeeklyNutritionSummary | null> {
-  const baby = await prisma.baby.findUnique({ where: { id: babyId } });
+  const baby = await prisma.baby.findUnique({
+    where: { id: babyId },
+    select: { birthDate: true },
+  });
   if (!baby) return null;
 
   const ageMonths = getBabyAgeInMonths(baby.birthDate);
@@ -41,27 +44,48 @@ export async function aggregateWeeklyNutrition(
   const oneWeekAgo = new Date();
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-  // This week's food logs
-  const weekLogs = await prisma.foodLog.findMany({
-    where: { babyId, date: { gte: oneWeekAgo } },
-    include: {
-      ingredients: { include: { ingredient: true } },
-      reaction: true,
-    },
-    orderBy: { date: "desc" },
-  });
+  const [weekLogs, previousIngredients] = await Promise.all([
+    prisma.foodLog.findMany({
+      where: { babyId, date: { gte: oneWeekAgo } },
+      select: {
+        ingredients: {
+          select: {
+            ingredient: {
+              select: {
+                name: true,
+                category: true,
+              },
+            },
+          },
+        },
+        reaction: {
+          select: {
+            liked: true,
+            allergy: true,
+          },
+        },
+      },
+      orderBy: { date: "desc" },
+    }),
+    prisma.foodIngredient.findMany({
+      where: {
+        foodLog: {
+          babyId,
+          date: { lt: oneWeekAgo },
+        },
+      },
+      select: {
+        ingredient: {
+          select: {
+            name: true,
+          },
+        },
+      },
+      distinct: ["ingredientId"],
+    }),
+  ]);
 
-  // All food logs before this week (for "new foods" detection)
-  const previousNames = new Set<string>();
-  const previousLogs = await prisma.foodLog.findMany({
-    where: { babyId, date: { lt: oneWeekAgo } },
-    include: { ingredients: { include: { ingredient: true } } },
-  });
-  for (const log of previousLogs) {
-    for (const fi of log.ingredients) {
-      previousNames.add(fi.ingredient.name);
-    }
-  }
+  const previousNames = new Set(previousIngredients.map((row) => row.ingredient.name));
 
   const weekCategories = new Set<string>();
   const newFoods: string[] = [];

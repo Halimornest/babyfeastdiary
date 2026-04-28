@@ -7,11 +7,13 @@ import IngredientSelector from "@/app/components/food-builder/IngredientSelector
 import CookingMethodSelector from "@/app/components/food-builder/CookingMethodSelector";
 import SeasoningSelector from "@/app/components/food-builder/SeasoningSelector";
 import BrothSelector from "@/app/components/food-builder/BrothSelector";
+import FatSelector from "@/app/components/food-builder/FatSelector";
 
 export default function FoodBuilder() {
   const {
     cookingMethods,
     seasonings,
+    fats,
     broths,
     ingredientSearch,
     setIngredientSearch,
@@ -149,6 +151,12 @@ export default function FoodBuilder() {
           selectedSeasonings={selectedSeasonings}
           toggleSeasoning={toggleSeasoning}
           seaBadgeAnim={seaBadgeAnim}
+        />
+
+        <FatSelector
+          fats={fats}
+          selectedSeasonings={selectedSeasonings}
+          toggleSeasoning={toggleSeasoning}
         />
 
         <BrothSelector

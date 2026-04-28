@@ -18,6 +18,14 @@ export const foodLogCreateSchema = z.object({
   note: z.string().max(1000).optional(),
 });
 
+export const foodLogUpdateSchema = z.object({
+  ingredientIds: z.array(z.coerce.number().int().positive()).min(1),
+  seasoningIds: z.array(z.coerce.number().int().positive()).optional().default([]),
+  cookingMethodId: z.coerce.number().int().positive().nullable().optional(),
+  brothId: z.coerce.number().int().positive().nullable().optional(),
+  note: z.string().max(1000).nullable().optional(),
+});
+
 export const reactionCreateSchema = z.object({
   foodLogId: z.coerce.number().int().positive(),
   liked: z.boolean().nullable().optional(),

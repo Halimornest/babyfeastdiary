@@ -1,4 +1,4 @@
-import type { IngredientCategory } from "@/app/types/food";
+﻿import type { IngredientCategory } from "@/app/types/food";
 
 /** Emoji map for ingredient names — used across FoodBuilder, Summary, and History pages */
 export const ingredientEmojis: Record<string, string> = {
@@ -12,12 +12,12 @@ export const ingredientEmojis: Record<string, string> = {
   "Ubi ungu": "🍠",
   Singkong: "🥔",
   Jagung: "🌽",
-  Sagu: "🫓",
+  Sagu: "🌾",
   Quinoa: "🌾",
   Pasta: "🍝",
   "Mie telur": "🍜",
   Barley: "🌾",
-  Couscous: "🫘",
+  Couscous: "🌾",
 
   // Protein Hewani
   Ayam: "🍗",
@@ -45,10 +45,10 @@ export const ingredientEmojis: Record<string, string> = {
   Tahu: "🧈",
   Tempe: "🫘",
   "Kacang merah": "🫘",
-  "Kacang hijau": "🫛",
+  "Kacang hijau": "🫘",
   "Kacang hitam": "🫘",
   "Kacang kedelai": "🫘",
-  Edamame: "🫛",
+  Edamame: "🫘",
   Chickpeas: "🫘",
   "Lentil merah": "🫘",
   "Lentil hijau": "🫘",
@@ -112,7 +112,7 @@ export const ingredientEmojis: Record<string, string> = {
   Kurma: "🌴",
   Delima: "🫐",
 
-  // Short aliases used only in summary (kept for backward compatibility)
+  // Short aliases used only in summary
   Telur: "🥚",
   Ikan: "🐟",
   Ubi: "🍠",
@@ -135,15 +135,16 @@ export const seasoningEmojis: Record<string, string> = {
   "Daun bawang": "🌿",
   "Daun seledri": "🌿",
   "Daun pandan": "🌿",
+  "Daun jeruk": "🍃",
 
   // Spices
   Jahe: "🫚",
   Kunyit: "✨",
   "Kayu manis": "🪵",
   Pala: "🌰",
-  "Lada hitam": "🌶",
-  "Lada putih": "🌶",
-  Merica: "🌶",
+  "Lada hitam": "🌶️",
+  "Lada putih": "🌶️",
+  Merica: "🌶️",
 
   // Herbs
   Parsley: "🌿",
@@ -161,11 +162,16 @@ export const seasoningEmojis: Record<string, string> = {
   "Kaldu ikan": "🍲",
 
   // Fats
+  "olive oil": "🫒",
   "Olive oil": "🫒",
-  "Minyak alpukat": "🥑",
-  Santan: "🥥",
+  "beef oil": "🥩",
+  "Beef oil": "🥩",
+  "chicken oil": "🍗",
+  "Chicken oil": "🍗",
+  "unsalted butter": "🧈",
   "Unsalted butter": "🧈",
-  Keju: "🧀",
+  "vegetable oil": "🌻",
+  "Vegetable oil": "🌻",
 
   // Acids
   "Air lemon": "🍋",

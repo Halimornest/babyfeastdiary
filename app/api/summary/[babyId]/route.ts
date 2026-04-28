@@ -15,7 +15,10 @@ export async function GET(
   const id = Number(babyId);
 
   // Verify baby belongs to authenticated user
-  const baby = await prisma.baby.findUnique({ where: { id } });
+  const baby = await prisma.baby.findUnique({
+    where: { id },
+    select: { userId: true },
+  });
   if (!baby || baby.userId !== auth.userId) {
     return NextResponse.json({ error: "Baby not found" }, { status: 404 });
   }
@@ -24,13 +27,22 @@ export async function GET(
     where: {
       babyId: id,
     },
-    include: {
+    select: {
       ingredients: {
-        include: {
-          ingredient: true,
+        select: {
+          ingredient: {
+            select: {
+              name: true,
+            },
+          },
         },
       },
-      reaction: true,
+      reaction: {
+        select: {
+          liked: true,
+          allergy: true,
+        },
+      },
     },
   });
 

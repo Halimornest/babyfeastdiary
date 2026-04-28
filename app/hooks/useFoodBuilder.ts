@@ -6,6 +6,14 @@ import { useBaby } from "@/app/components/BabyContext";
 import { fetchFoodBuilderData, saveMealLog } from "@/app/services/foodLogService";
 import type { IngredientCategory, IngredientItem, DataItem, SeasoningItem } from "@/app/types/food";
 
+const FAT_ITEM_NAMES = new Set([
+  "olive oil",
+  "beef oil",
+  "chicken oil",
+  "unsalted butter",
+  "vegetable oil",
+]);
+
 export function useFoodBuilder() {
   const searchParams = useSearchParams();
   const { activeBabyId } = useBaby();
@@ -58,25 +66,11 @@ export function useFoodBuilder() {
 
   useEffect(() => {
     fetchFoodBuilderData()
-      .then(({ ingredients: ingredientsData, cookingMethods: cookingData, seasonings: seasoningsData, broths: brothsData, babies: babiesData }) => {
+      .then(({ ingredients: ingredientsData, cookingMethods: cookingData, seasonings: seasoningsData, broths: brothsData }) => {
         setIngredients(ingredientsData);
         setCookingMethods(cookingData);
         setSeasonings(seasoningsData);
         setBroths(brothsData);
-
-        // Resolve the active baby ID: prefer query param, then localStorage, then first baby
-        const babyIdFromQuery = Number(searchParams.get("babyId"));
-        const babyIdFromStorage = Number(localStorage.getItem("selectedBabyId"));
-        const preferredId =
-          (Number.isInteger(babyIdFromQuery) && babyIdFromQuery > 0 ? babyIdFromQuery : null) ??
-          (Number.isInteger(babyIdFromStorage) && babyIdFromStorage > 0 ? babyIdFromStorage : null);
-
-        const validBaby = preferredId
-          ? babiesData.find((b: DataItem) => b.id === preferredId)
-          : null;
-
-        const resolvedId = validBaby ? preferredId! : babiesData[0]?.id ?? null;
-        setSelectedBabyId(resolvedId);
       })
       .catch((err) => {
         console.error("Failed to fetch data:", err);
@@ -85,6 +79,13 @@ export function useFoodBuilder() {
       .finally(() => {
         setLoading(false);
       });
+  }, [searchParams]);
+
+  useEffect(() => {
+    const babyIdFromQuery = Number(searchParams.get("babyId"));
+    if (Number.isInteger(babyIdFromQuery) && babyIdFromQuery > 0) {
+      setSelectedBabyId(babyIdFromQuery);
+    }
   }, [searchParams]);
 
   const vibrate = useCallback(() => {
@@ -118,6 +119,16 @@ export function useFoodBuilder() {
     }
     return counts;
   }, [ingredients]);
+
+  const fats = useMemo(
+    () =>
+      seasonings.filter(
+        (item) =>
+          (item.category ?? "AROMATIC") === "FAT" &&
+          FAT_ITEM_NAMES.has(item.name.toLowerCase())
+      ),
+    [seasonings]
+  );
 
   const toggleIngredient = useCallback((id: number) => {
     vibrate();
@@ -172,6 +183,7 @@ export function useFoodBuilder() {
     cookingMethods,
     seasonings,
     broths,
+    fats,
     // Filter & grouping
     ingredientSearch,
     setIngredientSearch,

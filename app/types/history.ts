@@ -5,7 +5,7 @@ export interface HistoryIngredient {
 
 export interface HistorySeasoning {
   id: number;
-  seasoning: { id: number; name: string };
+  seasoning: { id: number; name: string; category?: "AROMATIC" | "SPICE" | "FAT" | "HERB" };
 }
 
 export interface HistoryReaction {

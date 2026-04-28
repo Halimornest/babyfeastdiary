@@ -41,14 +41,56 @@ export async function getBabyFoodContext(
   const ageMonths = getBabyAgeInMonths(baby.birthDate);
   const stage = getFoodStage(ageMonths);
 
-  const foodLogs = await prisma.foodLog.findMany({
-    where: { babyId },
-    include: {
-      ingredients: { include: { ingredient: true } },
-      reaction: true,
-    },
-    orderBy: { date: "desc" },
-  });
+  const [foodIngredientRows, recentLogs, allSeasonings] = await Promise.all([
+    prisma.foodIngredient.findMany({
+      where: { foodLog: { babyId } },
+      select: {
+        ingredient: {
+          select: {
+            name: true,
+            category: true,
+          },
+        },
+        foodLog: {
+          select: {
+            reaction: {
+              select: {
+                liked: true,
+                allergy: true,
+              },
+            },
+          },
+        },
+      },
+    }),
+    prisma.foodLog.findMany({
+      where: { babyId },
+      select: {
+        date: true,
+        ingredients: {
+          select: {
+            ingredient: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+        reaction: {
+          select: {
+            liked: true,
+            allergy: true,
+          },
+        },
+      },
+      orderBy: { date: "desc" },
+      take: 20,
+    }),
+    prisma.seasoning.findMany({
+      select: { name: true, minAgeMonths: true },
+      orderBy: [{ minAgeMonths: "asc" }, { name: "asc" }],
+    }),
+  ]);
 
   const likedSet = new Set<string>();
   const dislikedSet = new Set<string>();
@@ -63,10 +105,9 @@ export async function getBabyFoodContext(
     fruits: 0,
   };
 
-  for (const log of foodLogs) {
-    for (const fi of log.ingredients) {
-      const name = fi.ingredient.name;
-      const category = fi.ingredient.category;
+  for (const row of foodIngredientRows) {
+      const name = row.ingredient.name;
+      const category = row.ingredient.category;
 
       triedSet.add(name);
 
@@ -92,25 +133,19 @@ export async function getBabyFoodContext(
         }
       }
 
-      if (log.reaction?.liked === true) likedSet.add(name);
-      if (log.reaction?.liked === false) dislikedSet.add(name);
-      if (log.reaction?.allergy === true) allergySet.add(name);
-    }
+      if (row.foodLog.reaction?.liked === true) likedSet.add(name);
+      if (row.foodLog.reaction?.liked === false) dislikedSet.add(name);
+      if (row.foodLog.reaction?.allergy === true) allergySet.add(name);
   }
 
   const triedFoods = [...triedSet];
 
-  const recentMeals = foodLogs.slice(0, 20).map((log) => ({
+  const recentMeals = recentLogs.map((log) => ({
     date: log.date,
     ingredients: log.ingredients.map((fi) => fi.ingredient.name),
     liked: log.reaction?.liked ?? null,
     allergy: log.reaction?.allergy ?? null,
   }));
-
-  const allSeasonings = await prisma.seasoning.findMany({
-    select: { name: true, minAgeMonths: true },
-    orderBy: [{ minAgeMonths: "asc" }, { name: "asc" }],
-  });
 
   const allowedSeasonings = allSeasonings
     .filter((item) => ageMonths >= item.minAgeMonths)

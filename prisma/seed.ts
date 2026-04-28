@@ -4,9 +4,29 @@ import { SeasoningCategory } from "../app/generated/prisma";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
-});
+function buildPgConfig() {
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    throw new Error("DATABASE_URL is not set");
+  }
+
+  const parsed = new URL(url);
+  const sslMode = parsed.searchParams.get("sslmode");
+
+  return {
+    host: parsed.hostname,
+    port: parsed.port ? Number(parsed.port) : 5432,
+    user: decodeURIComponent(parsed.username),
+    password: decodeURIComponent(parsed.password || ""),
+    database: decodeURIComponent(parsed.pathname.replace(/^\//, "") || "postgres"),
+    ssl:
+      sslMode === "disable"
+        ? undefined
+        : { rejectUnauthorized: false as const },
+  };
+}
+
+const adapter = new PrismaPg(buildPgConfig());
 
 const prisma = new PrismaClient({ adapter });
 
@@ -154,6 +174,7 @@ async function main() {
     { name: "Bawang putih", category: SeasoningCategory.AROMATIC, minAgeMonths: 6, isStrongFlavor: false },
     { name: "Daun bawang", category: SeasoningCategory.AROMATIC, minAgeMonths: 6, isStrongFlavor: false },
     { name: "Daun seledri", category: SeasoningCategory.AROMATIC, minAgeMonths: 6, isStrongFlavor: false },
+    { name: "Daun jeruk", category: SeasoningCategory.AROMATIC, minAgeMonths: 8, isStrongFlavor: false },
     { name: "Bawang bombay", category: SeasoningCategory.AROMATIC, minAgeMonths: 6, isStrongFlavor: false },
     { name: "Daun pandan", category: SeasoningCategory.AROMATIC, minAgeMonths: 6, isStrongFlavor: false },
 
@@ -183,11 +204,11 @@ async function main() {
     { name: "Air jeruk nipis", category: SeasoningCategory.AROMATIC, minAgeMonths: 8, isStrongFlavor: false },
 
     // Healthy fats
-    { name: "Olive oil", category: SeasoningCategory.FAT, minAgeMonths: 6, isStrongFlavor: false },
-    { name: "Unsalted butter", category: SeasoningCategory.FAT, minAgeMonths: 7, isStrongFlavor: false },
-    { name: "Santan", category: SeasoningCategory.FAT, minAgeMonths: 6, isStrongFlavor: false },
-    { name: "Minyak alpukat", category: SeasoningCategory.FAT, minAgeMonths: 6, isStrongFlavor: false },
-    { name: "Keju", category: SeasoningCategory.FAT, minAgeMonths: 8, isStrongFlavor: false },
+    { name: "olive oil", category: SeasoningCategory.FAT, minAgeMonths: 6, isStrongFlavor: false },
+    { name: "beef oil", category: SeasoningCategory.FAT, minAgeMonths: 8, isStrongFlavor: false },
+    { name: "chicken oil", category: SeasoningCategory.FAT, minAgeMonths: 7, isStrongFlavor: false },
+    { name: "unsalted butter", category: SeasoningCategory.FAT, minAgeMonths: 7, isStrongFlavor: false },
+    { name: "vegetable oil", category: SeasoningCategory.FAT, minAgeMonths: 6, isStrongFlavor: false },
   ];
 
   const uniqueSeasonings = Array.from(
