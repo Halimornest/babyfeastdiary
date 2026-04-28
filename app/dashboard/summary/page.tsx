@@ -33,6 +33,7 @@ function SummaryContent() {
     babiesLoading,
     refreshInsights,
   } = useSummaryData();
+  const hasBasicData = Boolean(data);
 
   type InsightSource = "cache" | "fresh" | "unknown";
   type SourceItem = { label: string; source: InsightSource; generatedAt?: string };
@@ -58,6 +59,20 @@ function SummaryContent() {
   const visibleSourceItems = sourceItems.filter(
     (item): item is SourceItem & { source: "cache" | "fresh" } => item.source !== "unknown"
   );
+  const hasRenderableInsights = Boolean(
+    (weeklyReport && typeof weeklyReport.mealsThisWeek === "number") ||
+    (nutritionBalance && Array.isArray(nutritionBalance.categories)) ||
+    (nextFoods && Array.isArray(nextFoods.recommendations)) ||
+    (recipes && Array.isArray(recipes.recipes)) ||
+    (tasteProfile && "profile" in tasteProfile)
+  );
+  const hasInsightMetadata = visibleSourceItems.length > 0;
+  const showEmptyState =
+    !noBaby &&
+    !hasBasicData &&
+    !hasRenderableInsights &&
+    !hasInsightMetadata &&
+    !insightsLoading;
 
   const latestInsightUpdate = visibleSourceItems
     .map((item) => item.generatedAt)
@@ -161,7 +176,7 @@ function SummaryContent() {
             <p className="text-gray-500 font-medium">No baby profile found</p>
             <p className="text-gray-400 text-sm mt-1">Add a baby in Profile to see their summary.</p>
           </div>
-        ) : !data ? (
+        ) : showEmptyState ? (
           <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 text-center animate-section-enter">
             <span className="text-4xl block mb-3">{"🍽️"}</span>
             <p className="text-gray-500 font-medium">No data yet</p>
@@ -170,9 +185,13 @@ function SummaryContent() {
         ) : (
           <>
             {/* Basic data sections */}
-            <FavoriteFoodsSection data={data} />
-            <AllergyFoodsSection data={data} />
-            <TriedFoodsSection data={data} />
+            {data && (
+              <>
+                <FavoriteFoodsSection data={data} />
+                <AllergyFoodsSection data={data} />
+                <TriedFoodsSection data={data} />
+              </>
+            )}
 
             {/* Weekly report + variety */}
             {weeklyReport && <FoodVarietySection report={weeklyReport} />}
@@ -188,6 +207,11 @@ function SummaryContent() {
             {insightsError && (
               <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-sm text-red-500 text-center">
                 Some insights failed to load. Scroll down to see what&apos;s available.
+              </div>
+            )}
+            {!hasRenderableInsights && hasInsightMetadata && (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 text-sm text-amber-700 text-center">
+                Insight tersedia dari cache, tapi konten belum lengkap. Tap <strong>Refresh Insights</strong> untuk memuat ulang.
               </div>
             )}
 

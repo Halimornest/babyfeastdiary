@@ -2,6 +2,7 @@ import { PrismaClient } from "@/app/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 const globalForPrisma = globalThis as unknown as {
+  prismaAdapter: PrismaPg | undefined;
   prisma: PrismaClient | undefined;
 };
 
@@ -13,6 +14,7 @@ function buildPgConfig() {
 
   const parsed = new URL(url);
   const sslMode = parsed.searchParams.get("sslmode");
+  const maxPoolSize = Number(process.env.DB_POOL_MAX ?? "3");
 
   return {
     host: parsed.hostname,
@@ -20,6 +22,9 @@ function buildPgConfig() {
     user: decodeURIComponent(parsed.username),
     password: decodeURIComponent(parsed.password || ""),
     database: decodeURIComponent(parsed.pathname.replace(/^\//, "") || "postgres"),
+    max: Number.isFinite(maxPoolSize) && maxPoolSize > 0 ? maxPoolSize : 3,
+    idleTimeoutMillis: 30_000,
+    connectionTimeoutMillis: 10_000,
     ssl:
       sslMode === "disable"
         ? undefined
@@ -27,10 +32,19 @@ function buildPgConfig() {
   };
 }
 
-const adapter = new PrismaPg(buildPgConfig());
+function getPrismaAdapter() {
+  if (globalForPrisma.prismaAdapter) {
+    return globalForPrisma.prismaAdapter;
+  }
+  const adapter = new PrismaPg(buildPgConfig());
+  if (process.env.NODE_ENV !== "production") {
+    globalForPrisma.prismaAdapter = adapter;
+  }
+  return adapter;
+}
 
 export const prisma =
   globalForPrisma.prisma ??
-  new PrismaClient({ adapter });
+  new PrismaClient({ adapter: getPrismaAdapter() });
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
